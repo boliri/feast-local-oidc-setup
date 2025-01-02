@@ -1,0 +1,23 @@
+project: feastlocal
+
+# The provider primarily specifies default offline / online stores & storing the registry in a given cloud
+provider: local
+
+# SQL Registry backed by PostgreSQL
+registry:
+    registry_type: sql
+    path: postgresql+psycopg://postgres:mysecretpassword@registry:5432/feast
+
+# Online Store backed by Redis
+online_store:
+    type: redis
+    connection_string: "online-store:6379"
+
+# Feature servers config - no username or password
+auth:
+    # type: no_auth
+    type: oidc
+    client_id: feature-store
+    auth_discovery_url: http://keycloak:8080/realms/master/.well-known/openid-configuration
+
+entity_key_serialization_version: 2

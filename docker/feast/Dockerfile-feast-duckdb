@@ -1,0 +1,5 @@
+# Custom Dockerfile that bundles the feast CLI and the duckdb extra
+
+FROM feastdev/feature-server:0.42.0
+
+RUN pip install feast[duckdb]

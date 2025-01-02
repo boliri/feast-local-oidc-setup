@@ -1,0 +1,15 @@
+project: feastlocal
+
+# The provider primarily specifies default offline / online stores & storing the registry in a given cloud
+provider: local
+
+# SQL Registry backed by PostgreSQL
+registry:
+    registry_type: sql
+    path: postgresql+psycopg://postgres:mysecretpassword@registry:5432/feast
+
+online_store:
+    type: remote
+    path: http://localhost:8181 # URL of the Online Feature Server
+
+entity_key_serialization_version: 2

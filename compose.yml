@@ -1,0 +1,79 @@
+services:
+  # AuthN / AuthZ management
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import
+    ports:
+      - 8080:8080
+    command: start-dev --import-realm
+
+  # Feast: core components
+  registry:
+    image: postgres:17.2-alpine3.21
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: feast
+    ports:
+      - 5432:5432
+
+  online-store:
+    image: redis:7.4.1-alpine
+    ports:
+      - 6379:6379
+    depends_on:
+      - registry
+
+  # Feast: feature servers
+  online-feature-server:
+    image: feastdev/feature-server:0.42.0
+    volumes:
+      - ./docker/feast/components/online-feature-server:/tmp/feast
+      - ./historical-features:/tmp/feast/historical-features
+    ports:
+      - 8181:8181
+    depends_on:
+      - keycloak
+      - registry
+      - online-store
+    command: feast --chdir /tmp/feast serve --host 0.0.0.0 --port 8181
+
+  offline-feature-server:
+    build: 
+      context: ./docker/feast
+      dockerfile: Dockerfile-feast-duckdb
+    volumes:
+      - ./docker/feast/components/offline-feature-server:/tmp/feast
+      - ./historical-features:/tmp/feast/historical-features
+    ports:
+      - 8282:8282
+    depends_on:
+      - keycloak
+      - registry
+    command: feast --chdir /tmp/feast serve_offline --host 0.0.0.0 --port 8282
+
+  # One-off tasks for feature registration & materialization
+  register-features:
+    image: feastdev/feature-server:0.42.0
+    volumes:
+      - ./docker/feast/feature-ops/register-features:/tmp/feast
+      - ./historical-features:/tmp/feast/historical-features
+    depends_on:
+      - registry
+    command: feast --chdir /tmp/feast apply
+
+  materialize-features:
+    build: 
+      context: ./docker/feast
+      dockerfile: Dockerfile-feast-duckdb
+    volumes:
+      - ./docker/feast/feature-ops/materialize-features:/tmp/feast
+      - ./historical-features:/tmp/feast/historical-features
+    depends_on:
+      - registry
+      - online-store
+    command: feast --chdir /tmp/feast materialize 1970-01-01T00:00:00 2024-12-31T00:00:00
