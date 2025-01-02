@@ -1,0 +1,33 @@
+project: feastlocal
+
+# The provider primarily specifies default offline / online stores & storing the registry in a given cloud
+provider: local
+
+# SQL Registry backed by PostgreSQL
+registry:
+    registry_type: sql
+    path: postgresql+psycopg://postgres:mysecretpassword@localhost:5432/feast
+
+# Remote Online Store - calls to FeatureStore::get_online_features will reach an Online Feature Server under the hood,
+# so the user doesn't need to make explicit HTTP calls
+online_store:
+    type: remote
+    path: http://localhost:8181 # URL of the Online Feature Server
+
+# Remote Offline Store - calls to FeatureStore::get_historical_features will reach an Offline Feature Server under the hood,
+# so the user doesn't need to make explicit HTTP calls
+offline_store:
+    type: remote
+    host: localhost # URL of the Offline Feature Server
+    port: 8282
+
+# Config for clients of the multiple feature servers - username and password required
+auth:
+  type: oidc
+  client_id: feature-store
+  client_secret: lsXQ8rAUBVIkt2eC1WGG3F36w10Tokqv
+  username: admin
+  password: admin
+  auth_discovery_url: http://localhost:8080/realms/master/.well-known/openid-configuration
+
+entity_key_serialization_version: 2
